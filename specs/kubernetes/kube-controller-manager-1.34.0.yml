@@ -1,0 +1,105 @@
+# syntax=ghcr.io/azure/dalec/frontend:0.16
+
+args:
+    VERSION: 1.34.0
+    COMMIT: f28b4c9efbca5c5c0af716d9f2d5702667ee8a45
+    REVISION: 2
+name: kube-controller-manager
+packager: Azure Container Upstream
+vendor: Microsoft Corporation
+license: Apache-2.0
+website: https://github.com/kubernetes/kubernetes
+description: Kubernetes Controller Manager
+x-build-extensions:
+    image-name: kube-controller-manager
+    build-targets:
+        - azlinux3/rpm
+        - azlinux3/container
+version: ${VERSION}
+revision: ${REVISION}
+sources:
+    kubernetes:
+        generate:
+            - gomod: {}
+        git:
+            url: https://github.com/kubernetes/kubernetes.git
+            commit: ${COMMIT}
+            keepGitDir: true
+conflicts:
+    kubernetes-kube-controller-manager:
+targets:
+    azlinux3:
+        dependencies:
+            build:
+                msft-golang:
+                git:
+                make:
+                gcc:
+                rsync:
+            runtime:
+                openssl-libs:
+                kubernetes-gorunner:
+                    version:
+                        - "== 0.17.8"
+            extra_repos:
+                - config:
+                    azl-cloud-native.repo:
+                        inline:
+                            file:
+                                contents: |
+                                    [azlinux-cloud-native]
+                                    name=Azure Linux Cloud Native $releasever $basearch
+                                    baseurl=https://packages.microsoft.com/azurelinux/$releasever/prod/cloud-native/$basearch
+                                    gpgkey=file:///etc/pki/rpm-gpg/MICROSOFT-RPM-GPG-KEY
+                                    gpgcheck=1
+                                    repo_gpgcheck=1
+                                    enabled=1
+                                    skip_if_unavailable=True
+                                    sslverify=1
+                  envs:
+                    # The repository will only be available when installing into the final container
+                    - install
+build:
+    env:
+        GOROOT: /usr/lib/golang
+        VERSION: v${VERSION}
+        COMMIT: "${COMMIT}"
+        GOPROXY: direct
+        GOEXPERIMENT: systemcrypto
+        CGO_ENABLED: "1"
+        FORCE_HOST_GO: true
+        KUBE_GIT_TREE_STATE: clean
+    steps:
+        - command: |
+            cd kubernetes
+            major="$(echo ${VERSION} | grep -Po "(?<=v)[0-9]+")"
+            minor="$(echo ${VERSION} | grep -Po "(?<=v${major}.)[0-9]+")"
+            SANITIZED_VERSION=$(printf '%s' "$VERSION" | sed 's/~/-/g')
+            cat <<EOF >version-file
+            KUBE_GIT_COMMIT='${COMMIT}'
+            KUBE_GIT_TREE_STATE='clean'
+            KUBE_GIT_VERSION='${SANITIZED_VERSION}'
+            KUBE_GIT_MAJOR='${major}'
+            KUBE_GIT_MINOR='${minor}'
+            EOF
+            KUBE_VERBOSE=3 KUBE_GIT_VERSION_FILE=version-file  WHAT=cmd/kube-controller-manager KUBE_CGO_OVERRIDES=kube-controller-manager DBG=1 make
+artifacts:
+    binaries:
+        kubernetes/_output/bin/kube-controller-manager: {}
+tests:
+    - name: Check files
+      files:
+        /usr/bin/kube-controller-manager:
+            permissions: 0755
+image:
+    entrypoint: /usr/bin/go-runner
+
+changelog:
+  - date: "2025-10-14"
+    author: jrickard@microsoft.com
+    changes:
+      - "Fix CVE-2025-4802" 
+  - date: "2025-08-27"
+    author: "Jeremy Rickard <jrickard@microsoft.com>"
+    changes: 
+      - Release Kubernetes 1.34.0
