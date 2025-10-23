@@ -49,5 +49,11 @@ extends:
                   else
                     echo "Deleted files:"
                     echo "$DELETED_FILES"
+                    mkdir -p deleted_files
+                    for file in $DELETED_FILES; do
+                      echo "Restoring $file..."
+                      git show "${SHA}^1:$file" > "deleted_files/$(basename "$file")" || echo "Failed to restore $file"
+                      cat "deleted_files/$(basename "$file")"
+                    done
                   fi
                 displayName: 'Print deleted files'
