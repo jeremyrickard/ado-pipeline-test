@@ -29,9 +29,6 @@ extends:
         # In the case of a windows build, this can be the same as the above pool image.
         image: azcu-agent-amd64-windows-22-img
         os: windows
-      sourceRepositoriesToScan:
-        include:
-        - repository: self
     stages:
       - stage: Build
         jobs:
