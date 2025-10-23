@@ -38,7 +38,6 @@ extends:
           - job: PrintDeletedFiles
             steps:
               - checkout: self
-                depth: 0
                 persistCredentials: true
               # Print deleted files from triggering commit
               - script: |
