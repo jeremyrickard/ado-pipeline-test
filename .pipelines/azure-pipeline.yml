@@ -40,6 +40,8 @@ extends:
               - checkout: self
                 persistCredentials: true
               # Print deleted files from triggering commit
+              - bash: git fetch --unshallow || true  
+                displayName: 'Ensure full git history'
               - script: |
                   set -euo pipefail
                   SHA="$(Build.SourceVersion)"
